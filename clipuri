@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Specify that the image should be transferred using PNG compression.
+mimetype="image/png"
+
+# Get the image that's currently in the clipboard and read the URI data.
+content=`xclip -selection clipboard -t "$mimetype" -o | base64 -w0`
+
+# Format the data and insert it into the clipboard. This is formatted such that
+# it can be inserted into the parentheses in markdown like so:
+#   ![image](<CLIPBOARD_OUTPUT>)
+echo -n "data:$mimetype;base64,$content" | xclip -selection clipboard
