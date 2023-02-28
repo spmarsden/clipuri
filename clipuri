@@ -4,7 +4,15 @@
 mimetype="image/png"
 
 # Get the image that's currently in the clipboard and read the URI data.
-content=`xclip -selection clipboard -t "$mimetype" -o | base64 -w0`
+content=`xclip -selection clipboard -t "$mimetype" -o 2> /dev/null | base64 -w0`
+
+# Check if it was sucessful. This will fail if the item in the clipboard was not
+# an image.
+if [ -z "$content" ]
+then
+    echo "Clipboard not recognised as image" >&2
+    exit 1
+fi
 
 # Format the data and insert it into the clipboard. This is formatted such that
 # it can be inserted into the parentheses in markdown like so:
