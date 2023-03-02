@@ -1,20 +1,82 @@
 #!/bin/sh
 
-# Specify that the image should be transferred using PNG compression.
-mimetype="image/png"
+usage() {
+    echo "clipuri [OPTION]"
+    echo ""
+    echo "  -u             Convert image in clipboard into data URI (default)"
+    echo "  -p             Convert image/data URI in clipboard to png"
+}
 
-# Get the image that's currently in the clipboard and read the URI data.
-content=`xclip -selection clipboard -t "$mimetype" -o 2> /dev/null | base64 -w0`
 
-# Check if it was sucessful. This will fail if the item in the clipboard was not
-# an image.
-if [ -z "$content" ]
+## Parse arguments #############################################################
+
+while getopts "up" arg
+do
+    case $arg in
+        u)
+            echo "u"
+            u="SET"
+            ;;
+        p)
+            echo "p"
+            p="SET"
+            ;;
+        *)
+            echo "* $opt ${OPTARG}" 
+            ;;
+        :)
+            echo ": ${OPTARG}"
+    esac
+done
+
+# Check argument validity.
+if [ ! -n "$u" ] && [ ! -n "$p" ]
 then
-    echo "Clipboard not recognised as image" >&2
-    exit 1
+    echo "Options -u and -p are mutually exclusive"
+    usage
+    exit 2
 fi
 
-# Format the data and insert it into the clipboard. This is formatted such that
-# it can be inserted into the parentheses in markdown like so:
-#   ![image](<CLIPBOARD_OUTPUT>)
-echo -n "data:$mimetype;base64,$content" | xclip -selection clipboard
+# Default arguments.
+if [ -z "$p" ]
+then
+    u="SET"
+fi
+
+
+## Create data URI #############################################################
+
+if [ -n "$u" ]
+then
+    # Specify that the image should be transferred using PNG compression.
+    mimetype="image/png"
+
+    # Get the image that's currently in the clipboard and read the URI data.
+    content=`xclip -selection clipboard -t "$mimetype" -o 2> /dev/null | base64 -w0`
+
+    # Check if it was sucessful. This will fail if the item in the clipboard was not
+    # an image.
+    if [ -z "$content" ]
+    then
+        echo "Clipboard not recognised as image" >&2
+        exit 1
+    fi
+
+    # Format the data and insert it into the clipboard. This is formatted such
+    # that it can be inserted into the parentheses in markdown like so:
+    #   ![image](<CLIPBOARD_OUTPUT>)
+    echo -n "data:$mimetype;base64,$content" | xclip -selection clipboard
+
+fi
+
+
+## Create png ##################################################################
+
+if [ -n "$p" ]
+then
+    # The content is already formatted as png. Insert that straight into the
+    # clipboard.
+    xclip -selection clipboard -t image/png -o | sed -e 's#data:image/png;base64,##' | base64 --decode | xclip -selection clipboard -t image/png -i
+    exit
+fi
+

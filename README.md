@@ -10,6 +10,10 @@ A simple script for linux that takes an image currently in the clipboard, conver
 
 ## Usage
 
-* Copy an image.
-* `clipuri`
-* Paste the data URI.
+### Convert an image to data URI
+
+* `clipuri` or `clipuri -u`
+
+### Convert a data URI to URI
+
+* `clipuri -p`
