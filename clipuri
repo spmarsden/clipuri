@@ -67,25 +67,26 @@ fi
 
 ## Read in image ###############################################################
 
-# Specify that the image should be transferred using PNG compression.
-mimetype="image/png"
-
-# Get the image that's currently in the clipboard and read the URI data.
-content=`xclip -selection clipboard -t "$mimetype" -o 2> /dev/null | base64 -w0`
-
-# Check if it was sucessful. This will fail if the item in the clipboard was
-# not an image.
-if [ -z "$content" ]
-then
-    echo "Clipboard not recognised as image" >&2
-    exit 3
-fi
 
 
 ## Create data URI #############################################################
 
 if [ -n "$u" ]
 then
+
+    # Specify that the image should be transferred using PNG compression.
+    mimetype="image/png"
+
+    # Get the image that's currently in the clipboard and read the URI data.
+    content=`xclip -selection clipboard -t "$mimetype" -o 2> /dev/null | base64 -w0`
+
+    # Check if it was sucessful. This will fail if the item in the clipboard was
+    # not an image.
+    if [ -z "$content" ]
+    then
+        echo "Clipboard not recognised as image" >&2
+        exit 3
+    fi
 
     # Format the data and insert it into the clipboard. This is formatted such
     # that it can be inserted into the parentheses in markdown like so:
@@ -101,6 +102,6 @@ if [ -n "$p" ]
 then
     # The content is already formatted as png. Insert that straight into the
     # clipboard.
-    echo -n "$content" | sed -e 's#data:image/png;base64,##' | base64 --decode | xclip -selection clipboard -t image/png -i
+    xclip -selection clipboard -o 2> /dev/null | sed -e 's#data:image/png;base64,##' | base64 --decode | xclip -selection clipboard -t image/png -i
 fi
 
