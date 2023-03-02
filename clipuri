@@ -1,39 +1,60 @@
 #!/bin/sh
 
+################################################################################
+#
+# ClipURI
+#
+# Converts the image currently in the clipboard between png and data URI.
+#
+# Error codes:
+#     2) Invalid arguments.
+#     3) Clipboard could not be decoded as image.
+#
+################################################################################
+
+
 usage() {
     echo "clipuri [OPTION]"
-    echo ""
-    echo "  -u             Convert image in clipboard into data URI (default)"
-    echo "  -p             Convert image/data URI in clipboard to png"
+    echo "  -h             display help message"
+    echo "  -u             convert image in clipboard into data URI (default)"
+    echo "  -p             convert image/data URI in clipboard to png"
 }
 
 
 ## Parse arguments #############################################################
 
-while getopts "up" arg
+while getopts "hup" arg
 do
     case $arg in
+        h)
+            h="SET"
+            ;;
         u)
-            echo "u"
             u="SET"
             ;;
         p)
-            echo "p"
             p="SET"
             ;;
         *)
-            echo "* $opt ${OPTARG}" 
+            echo "Invalid argument '$arg'" 1>&2
+            usage 1>&2
+            exit 2
             ;;
-        :)
-            echo ": ${OPTARG}"
     esac
 done
 
-# Check argument validity.
-if [ ! -n "$u" ] && [ ! -n "$p" ]
+# If help is requested, provide it and exit.
+if [ -n "$h" ]
 then
-    echo "Options -u and -p are mutually exclusive"
     usage
+    exit
+fi
+
+# Check argument validity.
+if [ -n "$u" ] && [ -n "$p" ]
+then
+    echo "Options -u and -p are mutually exclusive" 1>&2
+    usage 1>&2
     exit 2
 fi
 
@@ -44,23 +65,27 @@ then
 fi
 
 
+## Read in image ###############################################################
+
+# Specify that the image should be transferred using PNG compression.
+mimetype="image/png"
+
+# Get the image that's currently in the clipboard and read the URI data.
+content=`xclip -selection clipboard -t "$mimetype" -o 2> /dev/null | base64 -w0`
+
+# Check if it was sucessful. This will fail if the item in the clipboard was
+# not an image.
+if [ -z "$content" ]
+then
+    echo "Clipboard not recognised as image" >&2
+    exit 3
+fi
+
+
 ## Create data URI #############################################################
 
 if [ -n "$u" ]
 then
-    # Specify that the image should be transferred using PNG compression.
-    mimetype="image/png"
-
-    # Get the image that's currently in the clipboard and read the URI data.
-    content=`xclip -selection clipboard -t "$mimetype" -o 2> /dev/null | base64 -w0`
-
-    # Check if it was sucessful. This will fail if the item in the clipboard was not
-    # an image.
-    if [ -z "$content" ]
-    then
-        echo "Clipboard not recognised as image" >&2
-        exit 1
-    fi
 
     # Format the data and insert it into the clipboard. This is formatted such
     # that it can be inserted into the parentheses in markdown like so:
@@ -76,7 +101,6 @@ if [ -n "$p" ]
 then
     # The content is already formatted as png. Insert that straight into the
     # clipboard.
-    xclip -selection clipboard -t image/png -o | sed -e 's#data:image/png;base64,##' | base64 --decode | xclip -selection clipboard -t image/png -i
-    exit
+    echo -n "$content" | sed -e 's#data:image/png;base64,##' | base64 --decode | xclip -selection clipboard -t image/png -i
 fi
 
